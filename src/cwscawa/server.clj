@@ -8,6 +8,7 @@
   "Hello!")
 ;;;
 
+(def workers (ref {}))
 (defn add-body [handler]
 
   (fn [req]
@@ -23,13 +24,24 @@
 (server/add-middleware add-body)
 
 ;;; added this to my view file
+(defn add-wks[current-wks new-wks]
+  (do
+    (println "the current in add-wks: " current-wks)
+;;    current-wks
+    (reduce #(merge %1
+                    {(keyword (%2 :id))
+                     (-> %2
+                         (dissoc :id)
+                         (assoc :load 0
+                                :last-jobs []))})
+            current-wks
+            new-wks)))
 
-(defpage [:any "/foo"] {:as params}
-  (do (println params ) (response/json (assoc  (:backbone params) "firstName" "D00M") )))
-
+;;; curl -d @/home/bernard/Code/repositories/cwscawa/test/cwscawa/new-workers.json --header "Content-Type: application/json"  http://localhost:8080/workers/add
 (defpage [:post "/workers/add"] {:as params}
-  (do (println (str  params "in post /workers/add"))
-      (response/json  [ "posting:" params " to /workers/add"])))
+(do (dosync (alter workers #(add-wks % (:backbone params))))
+      (println "new workers: " (:backbone params) "all workers: " @workers)
+      (response/json @workers )))
 (defn -main [& m]
   (let [mode (keyword (or (first m) :dev))
         port (Integer. (get (System/getenv) "PORT" "8080"))]
