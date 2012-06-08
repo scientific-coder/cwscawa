@@ -9,6 +9,8 @@
 ;;;
 
 (def workers (ref {}))
+(def cached-jobs (ref {}))
+
 (defn add-body [handler]
   (fn [req]
     ;; "text/text"
@@ -32,6 +34,21 @@
 (defpage [:post "/workers/add"] {:as params}
   (do (dosync (alter workers #(add-wks % (:backbone params))))
       (println "new workers: " (:backbone params) "all workers: " @workers)
+      (response/json @workers )))
+
+(defpage [:post "/workers/remove"] {:as params}
+  (do  (dosync (alter workers #(reduce dissoc % (map keyword  (:backbone params)))))
+      (println "workers to remove: " (:backbone params) "all workers: " @workers)
+      (response/json @workers )))
+
+(defn dec-load [wks id]
+  (let [wk (wks id)]
+    (if wk 
+      (assoc wks id (assoc wk :load (dec (wk :load)))))
+    wks))
+(defpage [:post "/workers/ack"] {:as params}
+  (do  (dosync (alter workers #(reduce dec-load % (map keyword  (:backbone params)))))
+      (println "workers to remove: " (:backbone params) "all workers: " @workers)
       (response/json @workers )))
 
 (defn -main [& m]
