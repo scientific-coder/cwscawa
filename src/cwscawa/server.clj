@@ -1,14 +1,17 @@
 (ns cwscawa.server
   (:require [noir.server :as server]
             [noir.response :as response]
-            [cheshire.core :as json])
+            [cheshire.core :as json]
+            [clojure.data.priority-map :as p-m])
   (:use [noir.core :only [defpage]]))
 
-;;; the two mutable states
-;; workers is a map from worker-id to { :load nb of running jobs(int)
+;;; the three mutable states
+;; workers is a map from worker-id to {
 ;; :cache-size nb of jobs that can fit in cache (int)
 ;; :last-jobs [ordered seq of the last :cache-size jobs] }
 (def workers (ref {}))
+;;  :load nb of running jobs(int)
+(def loads (ref (p-m/priority-map)))
 ;; cached-jobs is a map from job-id to #{ worker-ids }
 ;; when a job is evicted from the cache of a worker, we remove the
 ;; worker from the set in this map and when the set is empty we remove
@@ -35,23 +38,29 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
 (defn add-wks[current-wks new-wks]
   "add workers (received from json) to the state, adding the :load and :last-jobs entries"
   (letfn [(empty-wk [[id prop]]
-            {id (merge prop {:load 0 :last-jobs []})})]
+            {id (merge prop { :last-jobs []})})]
+;; TODO think
     (reduce #(merge %1 (empty-wk %2)) current-wks new-wks)))
 
 ;; curl -d @/home/bernard/Code/repositories/cwscawa/test/cwscawa/new-workers.json --header "Content-Type: application/json"  http://localhost:8080/workers/add
 (defpage [:post "/workers/add"] {:as params}
-  (do (dosync (alter workers #(add-wks % (:backbone params))))
-      (println "new workers: " (:backbone params) "all workers: " @workers)
-      (response/json @workers )))
+  (let [ids (map keyword (:backbone params))]
+    (do (dosync (alter workers #(add-wks %))
+                (alter loads #(reduce conj %  (map vector ids (repeat 0)))))
+        (println "new workers: " ids "all workers: " @workers)
+        (response/json @workers ))))
 
 ;; curl -d "[\"id3\"]" --header "Content-Type: application/json"  http://localhost:8080/workers/remove
 (defpage [:post "/workers/remove"] {:as params}
-  (do  (dosync (alter workers #(reduce dissoc % (map keyword  (:backbone params)))))
+  (do  (dosync
+        (let [ids (map keyword  (:backbone params))]
+          (doseq [pm [workers loads]]; not removed from caches
+            (alter pm #(reduce dissoc % )))))
       (println "workers to remove: " (:backbone params) "all workers: " @workers)
       (response/json @workers )))
 
 (defn dec-load [wks id]
-  "if a worker with id is in wks, dec its :load"
+  "reduce  the load of id in"
   (if-let [wk (wks id)]
     (assoc wks id (assoc wk :load (dec (wk :load))))
     wks))
@@ -59,17 +68,21 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
 ;; we assume that jobs leave cache of a node in fifo order of
 ;; submittion while it should be in order of ack !
 (defpage [:post "/workers/ack"] {:as params}
-  (do  (dosync (alter workers #(reduce dec-load % (map keyword  (:backbone params)))))
+  (do  (dosync (alter workers #(reduce
+                                (fn [pm id]
+                                  (assoc pm id (dec (pm id ))))
+                                % (map keyword  (:backbone params)))))
       (println "dec load of worker : " (:backbone params) "all workers: " @workers)
       (response/json @workers )))
 
 (defn find-worker [j-id]
   "find candidate worker for job j-id"
-  (let [in-cache (select-keys @workers (@cached-jobs j-id))
-        wks  (if (empty? in-cache) @workers in-cache)
-        get-load #((wks % ) :load)
-        min-load #(if (< (get-load %1) (get-load %2)) %1 %2)]
-    (reduce min-load (keys wks))))
+  (let [in-cache (select-keys @workers (@cached-jobs j-id))]
+    (if (empty? in-cache)
+      (first  (first (seq @loads)))
+      ;; TODO check if @ is a slow path
+      (reduce #(if (< (@loads %1) (@loads %2)) %1 %2)
+              (keys in-cache)))))
 
 ;; cannot only do a
 ;; (merge-with (fn [s k](remove #(= % k) s)) @cached-jobs {j-id w-id})
@@ -88,7 +101,8 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
                          (dissoc current-cache jid)
                          (assoc current-cache jid updated-wks))))]
      (do
-       (alter workers #(assoc % w-id (assoc wk :load (inc (wk :load)) :last-jobs current-jobs)))
+       (alter workers #(assoc % w-id (assoc wk :last-jobs current-jobs)))
+       (alter loads #(assoc % w-id (inc (% w-id))))
        (alter cached-jobs #(merge-with into
                                          (reduce rm-cached % evicted-jobs)
                                          {j-id #{w-id}}))
