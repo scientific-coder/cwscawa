@@ -68,12 +68,12 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
 ;; we assume that jobs leave cache of a node in fifo order of
 ;; submittion while it should be in order of ack !
 (defpage [:post "/workers/ack"] {:as params}
-  (do  (dosync (alter workers #(reduce
+  (do  (dosync (alter loads #(reduce
                                 (fn [pm id]
-                                  (assoc pm id (dec (pm id ))))
-                                % (map keyword  (:backbone params)))))
-      (println "dec load of worker : " (:backbone params) "all workers: " @workers)
-      (response/json @workers )))
+                                  (do (println "id:" id " pm " pm) (assoc pm id (dec (pm id )))))
+                                % (map keyword (:backbone params)))))
+      (println "dec load of worker : " (:backbone params) "all loads: " @loads)
+      (response/json @loads )))
 
 (defn find-worker [j-id]
   "find candidate worker for job j-id"
