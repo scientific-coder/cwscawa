@@ -38,16 +38,16 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
 (defn add-wks[current-wks new-wks]
   "add workers (received from json) to the state, adding the :load and :last-jobs entries"
   (letfn [(empty-wk [[id prop]]
-            {id (merge prop { :last-jobs []})})]
+            (do (println id " with " prop) {id (merge prop { :last-jobs []})}))]
 ;; TODO think
     (reduce #(merge %1 (empty-wk %2)) current-wks new-wks)))
 
 ;; curl -d @/home/bernard/Code/repositories/cwscawa/test/cwscawa/new-workers.json --header "Content-Type: application/json"  http://localhost:8080/workers/add
 (defpage [:post "/workers/add"] {:as params}
-  (let [ids (map keyword (:backbone params))]
-    (do (dosync (alter workers #(add-wks %))
-                (alter loads #(reduce conj %  (map vector ids (repeat 0)))))
-        (println "new workers: " ids "all workers: " @workers)
+  (let [ids (:backbone params)]
+    (do (dosync (alter workers #(add-wks % ids))
+                (alter loads #(reduce conj %  (map vector (map first ids) (repeat 0)))))
+        (println "backbone:" (:backbone params) "new workers: " ids "all workers: " @workers "all loads:" @loads)
         (response/json @workers ))))
 
 ;; curl -d "[\"id3\"]" --header "Content-Type: application/json"  http://localhost:8080/workers/remove
