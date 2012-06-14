@@ -114,10 +114,11 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
 
 (defpage "/jobs/status" []
   (response/json @cached-jobs ))
-
+;;; 
 (defpage [:post "/jobs/submit"] {:as params}
   (do  (doseq  [j-id (:backbone params)] (assign (keyword j-id)))
-       (println "jobs to assign: " (:backbone params) "all cached jobs: " @cached-jobs)
+       (println "jobs to assign: " (:backbone params) "all cached jobs: " @cached-jobs
+                "loads:" @loads)
        (response/json @cached-jobs )))
 
 (defn -main [& m]
