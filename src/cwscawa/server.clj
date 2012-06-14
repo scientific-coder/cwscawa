@@ -55,7 +55,7 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
   (do  (dosync
         (let [ids (map keyword  (:backbone params))]
           (doseq [pm [workers loads]]; not removed from caches
-            (alter pm #(reduce dissoc % )))))
+            (alter pm #(reduce dissoc % ids)))))
       (println "workers to remove: " (:backbone params) "all workers: " @workers)
       (response/json @workers )))
 
