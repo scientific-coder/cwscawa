@@ -47,8 +47,7 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
   (let [ids (:backbone params)]
     (do (dosync (alter workers #(add-wks % ids))
                 (alter loads #(reduce conj %  (map vector (map first ids) (repeat 0)))))
-        (println "backbone:" (:backbone params) "new workers: " ids "all workers: " @workers "all loads:" @loads)
-        (response/json @workers ))))
+        (println "backbone:" (:backbone params) "new workers: " ids "all workers: " @workers "all loads:" @loads))))
 
 ;; curl -X DELETE -d "[\"id3\"]" --header "Content-Type: application/json"  http://localhost:8080/workers
 (defpage [:delete "/workers"] {:as params}
@@ -56,8 +55,7 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
         (let [ids (map keyword  (:backbone params))]
           (doseq [pm [workers loads]]; not removed from caches
             (alter pm #(reduce dissoc % ids)))))
-      (println "workers to remove: " (:backbone params) "all workers: " @workers)
-      (response/json @workers )))
+      (println "workers to remove: " (:backbone params) "all workers: " @workers)))
 
 (defn dec-load [wks id]
   "reduce  the load of id in"
@@ -72,8 +70,7 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
                                 (fn [pm id]
                                   (do (println "id:" id " pm " pm) (assoc pm id (dec (pm id )))))
                                 % (map keyword (:backbone params)))))
-      (println "dec load of worker : " (:backbone params) "all loads: " @loads)
-      (response/json @loads )))
+      (println "dec load of worker : " (:backbone params) "all loads: " @loads)))
 
 (defn find-worker [j-id]
   "find candidate worker for job j-id"
@@ -123,8 +120,7 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
 (defpage [:post "/jobs"] {:as params}
   (do  (doseq  [j-id (:backbone params)] (assign (keyword j-id)))
        (println "jobs to assign: " (:backbone params) "all cached jobs: " @cached-jobs
-                "loads:" @loads)
-       (response/json @cached-jobs )))
+                "loads:" @loads)))
 
 (defn -main [& m]
   (let [mode (keyword (or (first m) :dev))
