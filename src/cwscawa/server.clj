@@ -42,16 +42,16 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
 ;; TODO think
     (reduce #(merge %1 (empty-wk %2)) current-wks new-wks)))
 
-;; curl -d @/home/bernard/Code/repositories/cwscawa/test/cwscawa/new-workers.json --header "Content-Type: application/json"  http://localhost:8080/workers/add
-(defpage [:post "/workers/add"] {:as params}
+;; curl -X PUT -d @/home/bernard/Code/repositories/cwscawa/test/cwscawa/new-workers.json --header "Content-Type: application/json"  http://localhost:8080/workers
+(defpage [:put "/workers"] {:as params}
   (let [ids (:backbone params)]
     (do (dosync (alter workers #(add-wks % ids))
                 (alter loads #(reduce conj %  (map vector (map first ids) (repeat 0)))))
         (println "backbone:" (:backbone params) "new workers: " ids "all workers: " @workers "all loads:" @loads)
         (response/json @workers ))))
 
-;; curl -d "[\"id3\"]" --header "Content-Type: application/json"  http://localhost:8080/workers/remove
-(defpage [:post "/workers/remove"] {:as params}
+;; curl -X DELETE -d "[\"id3\"]" --header "Content-Type: application/json"  http://localhost:8080/workers
+(defpage [:delete "/workers"] {:as params}
   (do  (dosync
         (let [ids (map keyword  (:backbone params))]
           (doseq [pm [workers loads]]; not removed from caches
@@ -67,7 +67,7 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
 ;; could indicate the job completed
 ;; we assume that jobs leave cache of a node in fifo order of
 ;; submittion while it should be in order of ack !
-(defpage [:post "/workers/ack"] {:as params}
+(defpage [:post "/ack"] {:as params}
   (do  (dosync (alter loads #(reduce
                                 (fn [pm id]
                                   (do (println "id:" id " pm " pm) (assoc pm id (dec (pm id )))))
@@ -109,13 +109,18 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
          (println "now workers" @workers
                   "now cached-jobs" @cached-jobs)))))
 
-(defpage "/workers/status" []
+(defpage [:get "/workers"] []
   (response/json @workers ))
 
-(defpage "/jobs/status" []
+(defpage [:get "/jobs"] []
   (response/json @cached-jobs ))
-;;; 
-(defpage [:post "/jobs/submit"] {:as params}
+
+(defpage [:get "/loads"] []
+  (response/json @loads ))
+
+
+;;; curl -X POST -d "[\"j1\",\"j2\"]" --header "Content-Type: application/json"  http://localhost:8080/jobs
+(defpage [:post "/jobs"] {:as params}
   (do  (doseq  [j-id (:backbone params)] (assign (keyword j-id)))
        (println "jobs to assign: " (:backbone params) "all cached jobs: " @cached-jobs
                 "loads:" @loads)
