@@ -15,3 +15,29 @@ curl -X DELETE -d "[\"id3\"]" --header "ContentGET  http://localhost:8080/worker
 curl http://localhost:8080/workers
 
 #+end_src
+
+* Openshift
+- web console :: https://openshift.redhat.com/app/console/applications/testbed
+- web app :: http://testbed-firsttest.rhcloud.com/
+- git :: ssh://afb53b65209940e6b3a0708c3e1e7bdd@testbed-firsttest.rhcloud.com/~/git/testbed.git/
+
+#+begin_src sh
+
+#+end_src
+rhc app cartridge start -a testbed -c postgresql-8.4
+rhc app cartridge stop -a testbed -c postgresql-8.4
+rhc app cartridge restart -a testbed -c postgresql-8.4
+rhc app cartridge reload -a testbed -c postgresql-8.4
+rhc app cartridge status -a testbed -c postgresql-8.4
+
+** postgresql credentials :crypt:
+-----BEGIN PGP MESSAGE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+jA0EAwMCKO9A1uiOyJpgyY2JQ2a5r+TzMNOjz5Xhf61onlILNg1NdtaqVr0tFm8f
++IQi368870rtamb+H68e92q13FE8pMQ4Myt4i7vlrdTF58PytsP3KCebck4INxr8
+66YXpH3FPguUNle987NoJA7Pxe3tMj9H8lV7NTb6LwT0UjF8IX/pHKSy6d0GED+M
+s9yA3zHgsFsPqTUFz58=
+=KvgS
+-----END PGP MESSAGE-----
+

@@ -128,7 +128,11 @@ https://groups.google.com/forum/#!msg/clj-noir/INqvBo6oXIA/G2hfpUYIpjcJ"
 
 (defn -main [& m]
   (let [mode (keyword (or (first m) :dev))
+        host (get (System/getenv) "HOST")
         port (Integer. (get (System/getenv) "PORT" "8080"))]
     (server/start port {:mode mode
-                        :ns 'cwscawa})))
+                        :ns 'cwscawa
+                        :jetty-options {:host host}})))
+
+
 
