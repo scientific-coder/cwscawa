@@ -1,0 +1,17 @@
+* testbed Clojure webservice app
+written in noir, to be deployed on Openshift (Heroku ?)
+
+#+begin_src sh
+curl -X PUT -d @/home/bernard/Code/repositories/cwscawa/test/cwscawa/new-workers.json --header "Content-Type: application/json"  http://localhost:8080/workers
+curl http://localhost:8080/workers
+curl -X POST -d "[\"j1\",\"j2\"]" --header "Content-Type: application/json"  http://localhost:8080/jobs
+#curl -d @/home/bernard/Code/repositories/cwscawa/test/cwscawa/jobs.json --header "Content-Type: application/json"  http://localhost:8080/jobs/submit
+
+curl http://localhost:8080/loads
+curl -d "[\"id3\"]" --header "Content-Type: application/json"  http://localhost:8080/workers/ack
+curl http://localhost:8080/loads
+
+curl -X DELETE -d "[\"id3\"]" --header "ContentGET  http://localhost:8080/workers
+curl http://localhost:8080/workers
+
+#+end_src
