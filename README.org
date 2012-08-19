@@ -22,8 +22,15 @@ curl http://localhost:8080/workers
 - git :: ssh://afb53b65209940e6b3a0708c3e1e7bdd@testbed-firsttest.rhcloud.com/~/git/testbed.git/
 
 #+begin_src sh
+wget https://raw.github.com/gist/2881373/8220c0d53ccfacd53967d1c0476afffd6c2e7619/start -O .openshift/action_hooks/start
+wget https://raw.github.com/gist/2881373/8220c0d53ccfacd53967d1c0476afffd6c2e7619/stop -O .openshift/action_hooks/stop
 
+mkdir bin
+cd bin && wget https://raw.github.com/technomancy/leiningen/stable/bin/lein && chmod +x lein
 #+end_src
+
+#+RESULTS:
+
 rhc app cartridge start -a testbed -c postgresql-8.4
 rhc app cartridge stop -a testbed -c postgresql-8.4
 rhc app cartridge restart -a testbed -c postgresql-8.4
